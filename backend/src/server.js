@@ -18,6 +18,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/forms', require('./routes/forms'));
 app.use('/api/forms', require('./routes/responses'));
 app.use('/api/airtable', require('./routes/airtable'));
+app.use('/api/webhooks', require('./routes/webhooks'));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
