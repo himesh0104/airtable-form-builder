@@ -19,8 +19,13 @@ export default function DashboardPage() {
       const res = await api.get('/forms');
       setForms(res.data);
     } catch (err) {
-      console.error('Failed to fetch forms:', err);
-      setErrorMsg('Unable to load forms.');
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else {
+        console.error('Failed to fetch forms:', err);
+        setErrorMsg('Unable to load forms. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,13 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+function getJWTSecret() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not set in .env file. Please set JWT_SECRET and restart the server.');
+  }
+  return process.env.JWT_SECRET;
+}
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -14,12 +21,13 @@ exports.login = async (req, res) => {
     if (user.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user._id }, getJWTSecret(), {
       expiresIn: '7d',
     });
 
     res.json({ token, user: { id: user._id, email: user.email, name: user.name } });
   } catch (error) {
+    console.error('Login error:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -36,12 +44,13 @@ exports.signup = async (req, res) => {
     }
     const user = new User({ email, password, name });
     await user.save();
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user._id }, getJWTSecret(), {
       expiresIn: '7d',
     });
 
     res.status(201).json({ token, user: { id: user._id, email: user.email, name: user.name } });
   } catch (error) {
+    console.error('Signup error:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -52,6 +61,7 @@ exports.me = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user: { id: user._id, email: user.email, name: user.name, airtableConnected: !!user.accessToken } });
   } catch (err) {
+    console.error('Me error:', err.message);
     res.status(500).json({ error: err.message });
   }
 };
