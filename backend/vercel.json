@@ -1,10 +1,4 @@
 {
-  "functions": {
-    "api/**/*": {
-      "maxDuration": 10,
-      "includeFiles": "backend/**"
-    }
-  },
   "builds": [
     { "src": "backend/api/index.js", "use": "@vercel/node" }
   ],
