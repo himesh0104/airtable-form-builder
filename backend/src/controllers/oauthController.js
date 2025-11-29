@@ -1,12 +1,13 @@
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 
 const AIRTABLE_AUTH_URL = 'https://airtable.com/oauth2/v1/authorize';
 const AIRTABLE_TOKEN_URL = 'https://airtable.com/oauth2/v1/token';
 
 exports.getLoginUrl = (req, res) => {
-  const state = Math.random().toString(36).substring(7);
+  const state = crypto.randomBytes(16).toString('hex');
   const params = new URLSearchParams({
     client_id: process.env.AIRTABLE_CLIENT_ID,
     redirect_uri: process.env.AIRTABLE_REDIRECT_URI,
