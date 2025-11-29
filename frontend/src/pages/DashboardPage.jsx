@@ -5,8 +5,11 @@ import { Link } from 'react-router-dom';
 export default function DashboardPage() {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [airtableStatus, setAirtableStatus] = useState({ connected: false, checking: true });
+  const [errorMsg, setErrorMsg] = useState('');
   useEffect(() => {
     fetchForms();
+    fetchMe();
   }, []);
 
   const fetchForms = async () => {
@@ -15,8 +18,18 @@ export default function DashboardPage() {
       setForms(res.data);
     } catch (err) {
       console.error('Failed to fetch forms:', err);
+      setErrorMsg('Unable to load forms.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMe = async () => {
+    try {
+      const res = await api.get('/auth/me');
+      setAirtableStatus({ connected: !!res.data.user?.airtableConnected, checking: false });
+    } catch (err) {
+      setAirtableStatus({ connected: false, checking: false });
     }
   };
 
@@ -38,13 +51,22 @@ export default function DashboardPage() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2>My Forms</h2>
-        <button onClick={handleLogout}>Logout</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ margin: 0 }}>My Forms</h2>
+          <div style={{ fontSize: '13px', color: '#666' }}>
+            {airtableStatus.checking ? 'Checking Airtable...' : airtableStatus.connected ? 'Airtable: Connected' : 'Airtable: Not connected'}
+          </div>
+        </div>
+        <div>
+          <button onClick={handleLogout} style={{ marginRight: 10 }}>Logout</button>
+        </div>
       </div>
       <Link to="/form/new" style={{ marginBottom: '20px', display: 'inline-block', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>
         Create New Form
       </Link>
+      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+
       {forms.length === 0 ? (
         <p>No forms yet. Create one to get started!</p>
       ) : (

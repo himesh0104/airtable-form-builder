@@ -16,6 +16,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/forms', require('./routes/forms'));
+app.use('/api/airtable', require('./routes/airtable'));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });

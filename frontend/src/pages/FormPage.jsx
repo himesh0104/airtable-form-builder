@@ -7,9 +7,18 @@ export default function FormPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ title: '', description: '', fields: [] });
   const [loading, setLoading] = useState(id && id !== 'new');
+  const [bases, setBases] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [selectedBase, setSelectedBase] = useState('');
+  const [selectedTable, setSelectedTable] = useState('');
+  const [availableFields, setAvailableFields] = useState([]);
+  const [selectedFieldIds, setSelectedFieldIds] = useState(new Set());
+
   useEffect(() => {
     if (id && id !== 'new') {
       fetchForm();
+    } else {
+      fetchBases();
     }
   }, [id]);
 
@@ -30,7 +39,11 @@ export default function FormPage() {
       if (id && id !== 'new') {
         await api.put(`/forms/${id}`, form);
       } else {
-        await api.post('/forms', form);
+        const selected = availableFields
+          .filter(f => selectedFieldIds.has(f.id))
+          .map(f => ({ id: f.id, label: f.name, type: f.type }));
+        const payload = { ...form, fields: selected.length ? selected : form.fields };
+        await api.post('/forms', payload);
       }
       navigate('/dashboard');
     } catch (err) {
@@ -58,6 +71,36 @@ export default function FormPage() {
     setForm({ ...form, fields: form.fields.filter((_, i) => i !== index) });
   };
 
+  const fetchBases = async () => {
+    try {
+      const res = await api.get('/airtable/bases');
+      setBases(res.data.bases || []);
+    } catch (err) {
+      console.error('Failed to fetch bases:', err);
+    }
+  };
+
+  const fetchTables = async (baseId) => {
+    if (!baseId) return;
+    try {
+      const res = await api.get(`/airtable/tables?baseId=${baseId}`);
+      setTables(res.data.tables || []);
+    } catch (err) {
+      console.error('Failed to fetch tables:', err);
+    }
+  };
+
+  const fetchFields = async (baseId, tableId) => {
+    if (!baseId || !tableId) return;
+    try {
+      const res = await api.get(`/airtable/fields?baseId=${baseId}&tableId=${tableId}`);
+      setAvailableFields(res.data.fields || []);
+      setSelectedFieldIds(new Set());
+    } catch (err) {
+      console.error('Failed to fetch fields:', err);
+    }
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -81,6 +124,45 @@ export default function FormPage() {
         />
         
         <h3>Fields</h3>
+        {id === 'new' && (
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ marginBottom: '8px' }}>
+              <label>Base:</label>
+              <select value={selectedBase} onChange={(e) => { setSelectedBase(e.target.value); setTables([]); setSelectedTable(''); setAvailableFields([]); fetchTables(e.target.value); }} style={{ marginLeft: '8px' }}>
+                <option value="">— pick a base —</option>
+                {bases.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: '8px' }}>
+              <label>Table:</label>
+              <select value={selectedTable} onChange={(e) => { setSelectedTable(e.target.value); fetchFields(selectedBase, e.target.value); }} style={{ marginLeft: '8px' }}>
+                <option value="">— pick a table —</option>
+                {tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+
+            {availableFields.length > 0 ? (
+              <div style={{ padding: '10px', border: '1px solid #eee' }}>
+                <div style={{ marginBottom: '8px' }}>Choose fields to include:</div>
+                {availableFields.map(f => (
+                  <label key={f.id} style={{ display: 'block', marginBottom: '6px' }}>
+                    <input type="checkbox" checked={selectedFieldIds.has(f.id)} onChange={(e) => {
+                      const set = new Set(selectedFieldIds);
+                      if (e.target.checked) set.add(f.id); else set.delete(f.id);
+                      setSelectedFieldIds(set);
+                    }} />{' '}
+                    {f.name} <small style={{ color: '#666' }}>({f.type})</small>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: '10px', color: '#666' }}>
+                {selectedBase && selectedTable ? 'No supported fields found in this table.' : 'Select a base and table to see fields.'}
+              </div>
+            )}
+          </div>
+        )}
+
         {form.fields.map((field, index) => (
           <div key={field.id} style={{ marginBottom: '15px', padding: '10px', border: '1px solid #ddd' }}>
             <input
