@@ -62,7 +62,7 @@ export default function DashboardPage() {
           <button onClick={handleLogout} style={{ marginRight: 10 }}>Logout</button>
         </div>
       </div>
-      <Link to="/form/new" style={{ marginBottom: '20px', display: 'inline-block', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>
+      <Link to="/form/builder" style={{ marginBottom: '20px', display: 'inline-block', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>
         Create New Form
       </Link>
       {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}

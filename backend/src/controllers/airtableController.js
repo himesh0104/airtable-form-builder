@@ -1,5 +1,6 @@
 const axios = require('axios');
 const User = require('../models/User');
+const { refreshAirtableToken } = require('../utils/tokenRefresh');
 
 const META_BASE = 'https://api.airtable.com/v0/meta';
 
@@ -9,16 +10,33 @@ function ensureToken(user) {
   return token;
 }
 
+async function makeAirtableRequest(fn, userId) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err.response?.status === 401) {
+      const newToken = await refreshAirtableToken(userId);
+      return await fn(newToken);
+    }
+    throw err;
+  }
+}
+
 exports.getBases = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     const token = ensureToken(user);
 
-    const r = await axios.get(`${META_BASE}/bases`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const result = await makeAirtableRequest(
+      async (newToken) => {
+        return await axios.get(`${META_BASE}/bases`, {
+          headers: { Authorization: `Bearer ${newToken || token}` },
+        });
+      },
+      req.userId
+    );
 
-    const bases = (r.data?.bases || []).map(b => ({ id: b.id, name: b.name }));
+    const bases = (result.data?.bases || []).map(b => ({ id: b.id, name: b.name }));
     res.json({ bases });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -33,11 +51,16 @@ exports.getTables = async (req, res) => {
     const user = await User.findById(req.userId);
     const token = ensureToken(user);
 
-    const r = await axios.get(`${META_BASE}/bases/${baseId}/tables`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const result = await makeAirtableRequest(
+      async (newToken) => {
+        return await axios.get(`${META_BASE}/bases/${baseId}/tables`, {
+          headers: { Authorization: `Bearer ${newToken || token}` },
+        });
+      },
+      req.userId
+    );
 
-    const tables = (r.data?.tables || []).map(t => ({ id: t.id, name: t.name }));
+    const tables = (result.data?.tables || []).map(t => ({ id: t.id, name: t.name }));
     res.json({ tables });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -52,11 +75,16 @@ exports.getFields = async (req, res) => {
     const user = await User.findById(req.userId);
     const token = ensureToken(user);
 
-    const r = await axios.get(`${META_BASE}/bases/${baseId}/tables/${tableId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const result = await makeAirtableRequest(
+      async (newToken) => {
+        return await axios.get(`${META_BASE}/bases/${baseId}/tables/${tableId}`, {
+          headers: { Authorization: `Bearer ${newToken || token}` },
+        });
+      },
+      req.userId
+    );
 
-    const fields = (r.data?.fields || []).filter(f => {
+    const fields = (result.data?.fields || []).filter(f => {
       const t = (f.type || '').toLowerCase();
       return t.includes('text') || t.includes('select') || t.includes('attach');
     }).map(f => ({ id: f.id, name: f.name, type: f.type }));
