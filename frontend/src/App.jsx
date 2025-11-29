@@ -5,6 +5,7 @@ import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import DashboardPage from './pages/DashboardPage';
 import FormPage from './pages/FormPage';
 import FormViewerPage from './pages/FormViewerPage';
+import ResponsesListPage from './pages/ResponsesListPage';
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token');
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/form/:id/edit" element={<ProtectedRoute><FormPage /></ProtectedRoute>} />
         <Route path="/form/:formId" element={<FormViewerPage />} />
+        <Route path="/forms/:formId/responses" element={<ProtectedRoute><ResponsesListPage /></ProtectedRoute>} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>
