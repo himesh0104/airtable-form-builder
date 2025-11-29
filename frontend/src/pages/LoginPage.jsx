@@ -37,6 +37,8 @@ export default function LoginPage() {
     try {
       setLoading(true);
       const res = await api.get('/auth/airtable/login');
+      // Store state in sessionStorage for validation on callback
+      sessionStorage.setItem('oauthState', res.data.state);
       window.location.href = res.data.url;
     } catch (err) {
       setError('Failed to start Airtable login');

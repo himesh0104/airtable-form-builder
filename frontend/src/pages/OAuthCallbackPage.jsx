@@ -12,12 +12,23 @@ export default function OAuthCallbackPage() {
       try {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
+        const storedState = sessionStorage.getItem('oauthState');
 
         if (!code) {
           setError('No authorization code received');
           setLoading(false);
           return;
         }
+
+        // Validate state parameter
+        if (!storedState || state !== storedState) {
+          setError('Invalid state parameter - possible CSRF attack');
+          setLoading(false);
+          return;
+        }
+
+        // Clear stored state
+        sessionStorage.removeItem('oauthState');
 
         // Call backend OAuth callback
         const res = await api.get(`/auth/airtable/callback?code=${code}&state=${state}`);

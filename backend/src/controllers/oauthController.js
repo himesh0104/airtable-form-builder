@@ -6,15 +6,17 @@ const AIRTABLE_AUTH_URL = 'https://airtable.com/oauth2/v1/authorize';
 const AIRTABLE_TOKEN_URL = 'https://airtable.com/oauth2/v1/token';
 
 exports.getLoginUrl = (req, res) => {
+  const state = Math.random().toString(36).substring(7);
   const params = new URLSearchParams({
     client_id: process.env.AIRTABLE_CLIENT_ID,
     redirect_uri: process.env.AIRTABLE_REDIRECT_URI,
     response_type: 'code',
     scope: 'data.records:read data.records:write',
+    state,
   });
 
   const url = `${AIRTABLE_AUTH_URL}?${params.toString()}`;
-  res.json({ url });
+  res.json({ url, state });
 };
 
 exports.callback = async (req, res) => {
