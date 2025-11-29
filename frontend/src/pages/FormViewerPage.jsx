@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 import { shouldShowQuestion } from '../utils/conditional';
 
 export default function FormViewerPage() {
   const { formId } = useParams();
-  const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -53,67 +53,71 @@ export default function FormViewerPage() {
 
     setSubmitting(true);
     try {
-      const res = await api.post(`/forms/${formId}/submit`, { answers });
-      navigate(`/forms/${formId}/responses`);
+      await api.post(`/forms/${formId}/submit`, { answers });
+      setSubmitted(true);
+      setError('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit');
+      setError(err.response?.data?.error || 'Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading form...</div>;
-  if (!form) return <div style={{ padding: '20px', color: 'red' }}>Form not found</div>;
+  if (loading) return <div className="loading">Loading form...</div>;
+  if (!form) return <div className="form-viewer"><div className="form-viewer-card"><div className="error-message">Form not found</div></div></div>;
+
+  if (submitted) {
+    return (
+      <div className="form-viewer">
+        <div className="form-viewer-card" style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✓</div>
+          <h2 style={{ color: '#065f46' }}>Thank You!</h2>
+          <p style={{ color: '#6b7280', marginBottom: '20px' }}>Your response has been received and saved successfully.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '20px auto', padding: '20px' }}>
-      <h2>{form.title}</h2>
-      {form.description && <p>{form.description}</p>}
+    <div className="form-viewer">
+      <div className="form-viewer-card">
+        <h2>{form.title}</h2>
+        {form.description && <p className="form-description">{form.description}</p>}
 
-      {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
+        {error && <div className="error-message">{error}</div>}
 
-      <form onSubmit={handleSubmit}>
-        {form.questions?.map(q => {
-          const show = shouldShowQuestion(q.conditionalRules, answers);
-          if (!show) return null;
+        <form onSubmit={handleSubmit}>
+          {form.questions?.map(q => {
+            const show = shouldShowQuestion(q.conditionalRules, answers);
+            if (!show) return null;
 
-          return (
-            <div key={q.questionKey} style={{ marginBottom: '15px' }}>
-              <label style={{ fontWeight: 'bold' }}>
-                {q.label}
-                {q.required && <span style={{ color: 'red' }}> *</span>}
-              </label>
-              {renderInput(q, answers[q.questionKey], (val) => handleInputChange(q.questionKey, val))}
-            </div>
-          );
-        })}
+            return (
+              <div key={q.questionKey} className="question-group">
+                <div className="question-label">
+                  {q.label}
+                  {q.required && <span className="required-badge">*</span>}
+                </div>
+                {renderInput(q, answers[q.questionKey], (val) => handleInputChange(q.questionKey, val))}
+              </div>
+            );
+          })}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginTop: '20px',
-          }}
-        >
-          {submitting ? 'Submitting...' : 'Submit'}
-        </button>
-      </form>
+          <div className="submit-buttons">
+            <button type="submit" className="btn btn-primary" disabled={submitting} style={{ flex: 1 }}>
+              {submitting ? 'Submitting...' : 'Submit Response'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
 function renderInput(question, value, onChange) {
   const { type } = question;
-  const style = { width: '100%', padding: '8px', marginTop: '5px', boxSizing: 'border-box' };
 
   if (type?.includes('long')) {
-    return <textarea value={value || ''} onChange={(e) => onChange(e.target.value)} style={{ ...style, minHeight: '100px' }} />;
+    return <textarea value={value || ''} onChange={(e) => onChange(e.target.value)} className="question-input" style={{ minHeight: '120px', resize: 'vertical' }} />;
   }
 
   if (type?.includes('select')) {
@@ -121,25 +125,31 @@ function renderInput(question, value, onChange) {
     if (isMulti) {
       const selected = Array.isArray(value) ? value : [];
       return (
-        <div>
+        <div className="checkbox-group">
           {['option1', 'option2', 'option3'].map(opt => (
-            <label key={opt} style={{ display: 'block', marginTop: '5px' }}>
-              <input type="checkbox" checked={selected.includes(opt)} onChange={(e) => {
-                const updated = e.target.checked ? [...selected, opt] : selected.filter(s => s !== opt);
-                onChange(updated);
-              }} /> {opt}
-            </label>
+            <div key={opt} className="checkbox-item">
+              <input 
+                type="checkbox" 
+                id={opt}
+                checked={selected.includes(opt)} 
+                onChange={(e) => {
+                  const updated = e.target.checked ? [...selected, opt] : selected.filter(s => s !== opt);
+                  onChange(updated);
+                }} 
+              />
+              <label htmlFor={opt}>{opt}</label>
+            </div>
           ))}
         </div>
       );
     }
     return (
-      <select value={value || ''} onChange={(e) => onChange(e.target.value)} style={style}>
-        <option value="">-- Select --</option>
+      <select value={value || ''} onChange={(e) => onChange(e.target.value)} className="question-input">
+        <option value="">-- Select an option --</option>
         {['option1', 'option2', 'option3'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
     );
   }
 
-  return <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={style} />;
+  return <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} className="question-input" />;
 }

@@ -41,52 +41,58 @@ export default function FormPage() {
     }
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
+  if (loading) return <div className="loading">Loading form...</div>;
+  if (error) return <div className="error-message" style={{ maxWidth: '600px', margin: '40px auto' }}>{error}</div>;
 
   return (
-    <div style={{ maxWidth: '600px', margin: '20px auto', padding: '20px' }}>
+    <div className="form-container">
       <h2>Edit Form</h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Title *</label>
+        <div className="form-group">
+          <label htmlFor="title">Title *</label>
           <input
+            id="title"
             type="text"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            style={{ display: 'block', width: '100%', padding: '8px', boxSizing: 'border-box' }}
             required
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Description</label>
+        <div className="form-group">
+          <label htmlFor="description">Description</label>
           <textarea
+            id="description"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            style={{ display: 'block', width: '100%', padding: '8px', minHeight: '60px', boxSizing: 'border-box' }}
+            style={{ minHeight: '100px', resize: 'vertical' }}
           />
         </div>
 
-        <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f5f5f5' }}>
-          <h4>Questions ({form.questions.length})</h4>
+        <div className="section">
+          <div className="section-title">Assigned Questions ({form.questions.length})</div>
           {form.questions.length === 0 ? (
-            <p style={{ color: '#666' }}>No questions assigned to this form.</p>
+            <p style={{ color: '#9ca3af', fontSize: '14px' }}>No questions assigned yet.</p>
           ) : (
-            form.questions.map((q, i) => (
-              <div key={i} style={{ marginBottom: '8px', padding: '8px', backgroundColor: '#fff', border: '1px solid #ddd' }}>
-                <strong>{q.label}</strong> <small style={{ color: '#666' }}>({q.type})</small>
-                {q.required && <span style={{ color: 'red', marginLeft: '8px' }}>*</span>}
-              </div>
-            ))
+            <div className="checkbox-group">
+              {form.questions.map((q, i) => (
+                <div key={i} className="checkbox-item" style={{ cursor: 'default' }}>
+                  <span style={{ color: '#667eea', marginRight: '8px' }}>✓</span>
+                  <label style={{ cursor: 'default' }}>
+                    <strong>{q.label}</strong>
+                    <span className="field-type">{q.type}{q.required ? ' - Required' : ''}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" disabled={saving} style={{ flex: 1, padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}>
-            {saving ? 'Saving...' : 'Save'}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
+          <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1 }}>
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
-          <button type="button" onClick={() => navigate('/dashboard')} style={{ flex: 1, padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', cursor: 'pointer' }}>
+          <button type="button" onClick={() => navigate('/dashboard')} className="btn btn-secondary" style={{ flex: 1 }}>
             Cancel
           </button>
         </div>

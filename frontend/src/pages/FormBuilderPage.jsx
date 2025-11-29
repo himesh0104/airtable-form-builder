@@ -24,7 +24,7 @@ export default function FormBuilderPage() {
       const res = await api.get('/airtable/bases');
       setBases(res.data.bases || []);
     } catch (err) {
-      setError('Failed to fetch bases. Make sure you\' re logged in with Airtable.');
+      setError('Failed to fetch bases. Make sure you\'re logged in with Airtable.');
     }
   };
 
@@ -54,6 +54,7 @@ export default function FormBuilderPage() {
     setSelectedTable('');
     setAvailableFields([]);
     setSelectedFieldIds(new Set());
+    setError('');
     if (baseId) fetchTables(baseId);
   };
 
@@ -61,6 +62,7 @@ export default function FormBuilderPage() {
     setSelectedTable(tableId);
     setAvailableFields([]);
     setSelectedFieldIds(new Set());
+    setError('');
     if (tableId) fetchFields(selectedBase, tableId);
   };
 
@@ -109,71 +111,95 @@ export default function FormBuilderPage() {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '20px auto', padding: '20px' }}>
-      <h2>Create Form</h2>
-      {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
+    <div className="form-container">
+      <h2>Create New Form</h2>
+      
+      {error && <div className="error-message">{error}</div>}
 
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Title *</label>
+        <div className="form-group">
+          <label htmlFor="title">Form Title *</label>
           <input
+            id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            style={{ display: 'block', width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            placeholder="e.g., Customer Feedback Form"
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Description</label>
+        <div className="form-group">
+          <label htmlFor="description">Description</label>
           <textarea
+            id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            style={{ display: 'block', width: '100%', padding: '8px', minHeight: '60px', boxSizing: 'border-box' }}
+            placeholder="Tell users what this form is about"
+            style={{ minHeight: '100px', resize: 'vertical' }}
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Base *</label>
-          <select value={selectedBase} onChange={(e) => handleBaseChange(e.target.value)} style={{ display: 'block', width: '100%', padding: '8px' }}>
-            <option value="">— Select a base —</option>
-            {bases.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </div>
+        <div className="section">
+          <div className="section-title">Connect to Airtable</div>
+          
+          <div className="form-group">
+            <label htmlFor="base">Base *</label>
+            <select 
+              id="base"
+              value={selectedBase} 
+              onChange={(e) => handleBaseChange(e.target.value)}
+            >
+              <option value="">— Select a base —</option>
+              {bases.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Table *</label>
-          <select value={selectedTable} onChange={(e) => handleTableChange(e.target.value)} style={{ display: 'block', width: '100%', padding: '8px' }}>
-            <option value="">— Select a table —</option>
-            {tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+          <div className="form-group">
+            <label htmlFor="table">Table *</label>
+            <select 
+              id="table"
+              value={selectedTable} 
+              onChange={(e) => handleTableChange(e.target.value)}
+              disabled={!selectedBase}
+            >
+              <option value="">— Select a table —</option>
+              {tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
         </div>
 
         {availableFields.length > 0 && (
-          <div style={{ marginBottom: '15px', padding: '10px', border: '1px solid #ddd' }}>
-            <label>Fields * (select at least one)</label>
-            {availableFields.map(f => (
-              <label key={f.id} style={{ display: 'block', marginTop: '8px' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedFieldIds.has(f.id)}
-                  onChange={(e) => {
-                    const set = new Set(selectedFieldIds);
-                    if (e.target.checked) set.add(f.id); else set.delete(f.id);
-                    setSelectedFieldIds(set);
-                  }}
-                />
-                {' '}{f.name} <small style={{ color: '#666' }}>({f.type})</small>
-              </label>
-            ))}
+          <div className="section">
+            <div className="section-title">Select Fields *</div>
+            <div className="checkbox-group">
+              {availableFields.map(f => (
+                <div key={f.id} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id={f.id}
+                    checked={selectedFieldIds.has(f.id)}
+                    onChange={(e) => {
+                      const set = new Set(selectedFieldIds);
+                      if (e.target.checked) set.add(f.id); 
+                      else set.delete(f.id);
+                      setSelectedFieldIds(set);
+                    }}
+                  />
+                  <label htmlFor={f.id}>
+                    <strong>{f.name}</strong>
+                    <span className="field-type">{f.type}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" disabled={loading} style={{ flex: 1, padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
+          <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1 }}>
             {loading ? 'Creating...' : 'Create Form'}
           </button>
-          <button type="button" onClick={() => navigate('/dashboard')} style={{ flex: 1, padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', cursor: 'pointer' }}>
+          <button type="button" onClick={() => navigate('/dashboard')} className="btn btn-secondary" style={{ flex: 1 }}>
             Cancel
           </button>
         </div>

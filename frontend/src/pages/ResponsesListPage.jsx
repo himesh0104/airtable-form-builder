@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
 
 export default function ResponsesListPage() {
@@ -27,44 +27,49 @@ export default function ResponsesListPage() {
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
+  const getPreviewText = (answers) => {
+    const entries = Object.entries(answers).slice(0, 2);
+    return entries.map(([k, v]) => `${k}: ${String(v).slice(0, 30)}`).join(' • ');
+  };
+
+  if (loading) return <div className="loading">Loading responses...</div>;
 
   return (
-    <div style={{ maxWidth: '900px', margin: '20px auto', padding: '20px' }}>
-      <h2>{form?.title} — Responses</h2>
+    <div className="responses-container">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <div>
+          <h2>{form?.title}</h2>
+          <p style={{ color: '#9ca3af', fontSize: '14px' }}>Total responses: {responses.length}</p>
+        </div>
+        <Link to="/dashboard" className="btn btn-secondary" style={{ maxWidth: '150px' }}>
+          ← Back
+        </Link>
+      </div>
 
       {responses.length === 0 ? (
-        <p>No responses yet.</p>
+        <div className="empty-state">
+          <h3>No responses yet</h3>
+          <p>Share your form to start collecting responses</p>
+        </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #ccc' }}>
-              <th style={{ textAlign: 'left', padding: '10px' }}>Submitted</th>
-              <th style={{ textAlign: 'left', padding: '10px' }}>Status</th>
-              <th style={{ padding: '10px' }}>Preview</th>
-            </tr>
-          </thead>
-          <tbody>
-            {responses.map(r => (
-              <tr key={r._id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '10px' }}>{new Date(r.createdAt).toLocaleString()}</td>
-                <td style={{ padding: '10px' }}>
-                  <span style={{ fontSize: '12px', color: r.deletedInAirtable ? 'red' : 'green' }}>
-                    {r.deletedInAirtable ? 'Deleted' : r.status}
-                  </span>
-                </td>
-                <td style={{ padding: '10px', fontSize: '12px', color: '#666' }}>
-                  {JSON.stringify(r.answers).slice(0, 80)}...
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ display: 'grid', gap: '12px' }}>
+          {responses.map(r => (
+            <div key={r._id} className="response-item">
+              <div className="response-header">
+                <span className="response-date">
+                  {new Date(r.createdAt).toLocaleDateString()} at {new Date(r.createdAt).toLocaleTimeString()}
+                </span>
+                <span className={`response-status${r.deletedInAirtable ? ' deleted' : ''}`}>
+                  {r.deletedInAirtable ? '🗑️ Deleted' : '✓ ' + r.status}
+                </span>
+              </div>
+              <div className="response-preview">
+                {getPreviewText(r.answers) || 'No answers recorded'}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
-
-      <a href="/dashboard" style={{ marginTop: '20px', display: 'inline-block' }}>
-        Back to Dashboard
-      </a>
     </div>
   );
 }

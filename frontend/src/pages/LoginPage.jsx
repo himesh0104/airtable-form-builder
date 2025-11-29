@@ -1,90 +1,107 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', formData);
       localStorage.setItem('token', res.data.token);
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleAirtableLogin = async () => {
     try {
+      setLoading(true);
       const res = await api.get('/auth/airtable/login');
       window.location.href = res.data.url;
     } catch (err) {
       setError('Failed to start Airtable login');
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', fontFamily: 'Arial, sans-serif' }}>
-      <h2 style={{ textAlign: 'center' }}>Form Builder</h2>
-      {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-      
-      <button
-        onClick={handleAirtableLogin}
-        style={{
-          width: '100%',
-          padding: '12px',
-          marginBottom: '20px',
-          backgroundColor: '#1a73e8',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          fontSize: '16px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-        }}
-      >
-        Login with Airtable
-      </button>
+    <div className="auth-container">
+      <div className="auth-form">
+        <h2>Welcome Back</h2>
+        <p className="subtitle">Sign in to your account</p>
 
-      <div style={{ textAlign: 'center', marginBottom: '20px', color: '#666' }}>— Or —</div>
+        {error && <div className="error-message">{error}</div>}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ display: 'block', marginBottom: '10px', padding: '8px', width: '100%', boxSizing: 'border-box' }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ display: 'block', marginBottom: '10px', padding: '8px', width: '100%', boxSizing: 'border-box' }}
-        />
-        <button
-          type="submit"
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: '#34a853',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-          }}
+        <button 
+          type="button"
+          onClick={handleAirtableLogin}
+          disabled={loading}
+          className="btn btn-primary"
+          style={{ marginBottom: '20px' }}
         >
-          Login
+          {loading ? 'Loading...' : 'Login with Airtable'}
         </button>
-      </form>
-      <p style={{ textAlign: 'center' }}>
-        Don't have an account? <a href="/signup">Sign up</a>
-      </p>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '20px 0' }}>
+          <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
+          <span style={{ color: '#9ca3af', fontSize: '14px' }}>Or continue with email</span>
+          <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="auth-link">
+          Don't have an account? <Link to="/signup">Create one</Link>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [airtableStatus, setAirtableStatus] = useState({ connected: false, checking: true });
   const [errorMsg, setErrorMsg] = useState('');
+
   useEffect(() => {
     fetchForms();
     fetchMe();
@@ -34,63 +36,88 @@ export default function DashboardPage() {
   };
 
   const handleDelete = async (id) => {
-    try {
-      await api.delete(`/forms/${id}`);
-      setForms(forms.filter(f => f._id !== id));
-    } catch (err) {
-      console.error('Failed to delete form:', err);
+    if (window.confirm('Are you sure you want to delete this form?')) {
+      try {
+        await api.delete(`/forms/${id}`);
+        setForms(forms.filter(f => f._id !== id));
+      } catch (err) {
+        console.error('Failed to delete form:', err);
+      }
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    navigate('/login');
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <div className="loading">Loading your forms...</div>;
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+    <div className="dashboard-container">
+      <div className="dashboard-header">
         <div>
-          <h2 style={{ margin: 0 }}>My Forms</h2>
-          <div style={{ fontSize: '13px', color: '#666' }}>
-            {airtableStatus.checking ? 'Checking Airtable...' : airtableStatus.connected ? 'Airtable: Connected' : 'Airtable: Not connected'}
+          <h2>My Forms</h2>
+          <div className={`status-badge ${airtableStatus.connected ? 'connected' : 'disconnected'}`}>
+            {airtableStatus.checking ? '⏳ Checking Airtable...' : airtableStatus.connected ? '✓ Airtable Connected' : '✗ Airtable Disconnected'}
           </div>
         </div>
-        <div>
-          <button onClick={handleLogout} style={{ marginRight: 10 }}>Logout</button>
+        <div className="btn-group">
+          <Link to="/form/builder" className="btn btn-primary">
+            + Create New Form
+          </Link>
+          <button onClick={handleLogout} className="btn btn-secondary">
+            Logout
+          </button>
         </div>
       </div>
-      <Link to="/form/builder" style={{ marginBottom: '20px', display: 'inline-block', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>
-        Create New Form
-      </Link>
-      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+
+      {errorMsg && <div className="error-message">{errorMsg}</div>}
 
       {forms.length === 0 ? (
-        <p>No forms yet. Create one to get started!</p>
+        <div className="empty-state">
+          <h3>No forms yet</h3>
+          <p>Create your first form to get started</p>
+          <Link to="/form/builder" className="btn btn-primary" style={{ display: 'inline-block', marginTop: '20px', maxWidth: '200px' }}>
+            Create Your First Form
+          </Link>
+        </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #ccc' }}>
-              <th style={{ textAlign: 'left', padding: '10px' }}>Title</th>
-              <th style={{ textAlign: 'left', padding: '10px' }}>Created</th>
-              <th style={{ padding: '10px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forms.map(form => (
-              <tr key={form._id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '10px' }}>{form.title}</td>
-                <td style={{ padding: '10px' }}>{new Date(form.createdAt).toLocaleDateString()}</td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>
-                  <Link to={`/form/${form._id}`} style={{ marginRight: '10px', color: '#007bff' }}>Edit</Link>
-                  <button onClick={() => handleDelete(form._id)} style={{ color: 'red', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
-                </td>
+        <div className="form-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Form Title</th>
+                <th>Created</th>
+                <th>Responses</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {forms.map(form => (
+                <tr key={form._id}>
+                  <td>
+                    <strong>{form.title}</strong>
+                    <br />
+                    <small style={{ color: '#9ca3af' }}>{form.description}</small>
+                  </td>
+                  <td>{new Date(form.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <Link to={`/forms/${form._id}/responses`} className="btn-edit" style={{ textDecoration: 'none', display: 'inline-block' }}>
+                      View Responses
+                    </Link>
+                  </td>
+                  <td>
+                    <div className="actions" style={{ justifyContent: 'flex-end' }}>
+                      <Link to={`/form/${form._id}`} className="btn-edit">Edit</Link>
+                      <button onClick={() => handleDelete(form._id)} className="btn-delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
